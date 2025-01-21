@@ -1,7 +1,8 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import normalize
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, cross_val_score
+
 
 from get_data import init_column_map, pull_data_rowwise
 
@@ -71,6 +72,35 @@ def text_to_code_q10_2(raw_ans):
        'Strongly agree':5
     }
     return mapping.get(raw_ans, -1)
+
+
+#################################
+## UNIVERSAL FALLBACK FUNCTION ##
+#################################
+
+def fallback_text_to_float(raw_ans):
+    """
+    Generic fallback. If raw_ans can be parsed as float, return it.
+    Otherwise, return -1 (invalid).
+    """
+    try:
+        return float(raw_ans)
+    except:
+        # Could also check if it's '' or 'NA' or something
+        return -1
+
+
+########################
+# Master Transformers Dict
+########################
+TRANSFORMERS = {
+    'Q9': text_to_code_q9,
+    'Q2': text_to_code_q2,
+    'Q8_1': text_to_code_q8_multi,
+    'Q8_2': text_to_code_q8_multi,
+    'Q8_99': text_to_code_q8_multi,
+    'Q10_2': text_to_code_q10_2
+}
 
 
 ####################
@@ -177,6 +207,7 @@ def build_v2g_model(csvfile, input_variables, target_variable):
 
     return model, X, y
 
+'''
 def build_v2g_model_multinomial(csvfile, input_variables, target_variable, do_normalize=True, test_split_ratio=0.0):
     """
     Builds a logistic regression model given:
@@ -291,3 +322,119 @@ def build_v2g_model_multinomial(csvfile, input_variables, target_variable, do_no
         print("Test accuracy:", test_acc)
 
     return model, X, y, X_test, y_test
+    '''
+
+
+def build_v2g_model_multinomial(csvfile, input_variables, target_variable,
+                                do_normalize=True, test_split_ratio=0.0):
+    """
+    Builds a multinomial logistic regression with L1 penalty.
+    - if a column is not in TRANSFORMERS, fallback_text_to_float is used
+    - rows with any invalid value (=-1) are discarded
+    - if no valid rows remain, we raise an Exception
+
+    Returns (model, X, y, X_test, y_test)
+    """
+    init_column_map(csvfile)
+    question_list = input_variables + [target_variable]
+    data = pull_data_rowwise(question_list, csvfile)
+
+    X_list = []
+    y_list = []
+
+    n_inputs = len(input_variables)
+
+    for row_vals in data:
+        row_x = []
+        good_row = True
+
+        # Convert each predictor
+        for i, var_name in enumerate(input_variables):
+            raw_val = row_vals[i]
+            if var_name in TRANSFORMERS:
+                val = TRANSFORMERS[var_name](raw_val)
+            else:
+                val = fallback_text_to_float(raw_val)
+            if val < 0:
+                good_row = False
+            row_x.append(val)
+
+        # Convert the target
+        raw_target = row_vals[n_inputs]
+        if target_variable in TRANSFORMERS:
+            t_val = TRANSFORMERS[target_variable](raw_target)
+        else:
+            t_val = fallback_text_to_float(raw_target)
+
+        if t_val < 0:
+            good_row = False
+
+        if good_row:
+            X_list.append(row_x)
+            y_list.append(t_val)
+
+    X = np.array(X_list, dtype=float)
+    y = np.array(y_list, dtype=int)
+
+    # If no valid rows => can't fit
+    if X.shape[0] == 0:
+        raise ValueError("No valid rows found after transformation - all rows invalid or empty subset")
+
+    # If only one dimension for X => we need to reshape
+    # (But if at least 2 rows, shape will be (n,1) or (n,>1). scikit-learn needs (n_samples, n_features).
+    if len(X.shape) == 1:
+        # Means X is shape (n,)
+        X = X.reshape(-1, 1)
+
+    # (Optional) Normalize or standardize the predictor matrix
+    ## See here:
+    # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.normalize.html
+    if do_normalize:
+        X = normalize(X, axis=0, norm='max')
+
+    # Split if needed
+    X_test, y_test = None, None
+    if test_split_ratio > 0.0:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split_ratio, random_state=42)
+    else:
+        X_train, y_train = X, y
+
+    # Fit logistic regression with L1 penalty
+    ## We can also consider L2 (Ridge regression)
+    ## Here's a great article on it: https://medium.com/analytics-vidhya/regularization-understanding-l1-and-l2-regularization-for-deep-learning-a7b9e4a409bf
+    model = LogisticRegression(
+        penalty='l1',
+        # Note that liblinear works well for one-vs-rest (OVR), but SAGA might be able to handle  multinomial + L1 better.    
+        solver='saga',          
+        multi_class='multinomial',
+        max_iter=1000
+    )
+
+    model.fit(X_train, y_train)
+
+    # Evaluate on training
+    train_acc = model.score(X_train, y_train)
+    print("Train accuracy:", train_acc)
+
+    if X_test is not None:
+        test_acc = model.score(X_test, y_test)
+        print("Test accuracy:", test_acc)
+
+    return model, X, y, X_test, y_test
+
+
+def evaluate_subset(csvfile, var_subset, target_variable):
+    """
+    Builds & cross-validates the logistic regression model 
+    on the subset of columns. Returns mean CV accuracy.
+    """
+    from build_model import build_v2g_model_multinomial
+    model, X, y, _, _ = build_v2g_model_multinomial(
+        csvfile=csvfile,
+        input_variables=list(var_subset),
+        target_variable=target_variable,
+        do_normalize=True,
+        test_split_ratio=0.0
+    )
+    scores = cross_val_score(model, X, y, cv=3, scoring="accuracy")
+    return scores.mean()
