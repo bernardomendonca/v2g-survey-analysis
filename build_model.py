@@ -159,7 +159,11 @@ def build_v2g_model(csvfile, input_variables, target_variable):
     # Fit logistic regression with L1 penalty
     ## We can also consider L2 (Ridge regression)
     ## Here's a great article on it: https://medium.com/analytics-vidhya/regularization-understanding-l1-and-l2-regularization-for-deep-learning-a7b9e4a409bf
-    model = LogisticRegression(penalty='l1', solver='liblinear')
+    model = LogisticRegression(
+        penalty='l1', 
+        # Note that liblinear works well for now, but SAGA might be able to handle  multinomial + L1 better.    
+        solver='liblinear'
+        )
     model.fit(X, y)
 
     # Evaluate
