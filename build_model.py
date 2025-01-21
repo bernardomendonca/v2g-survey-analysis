@@ -2,12 +2,12 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import normalize
 from sklearn.model_selection import train_test_split, cross_val_score, cross_val_score
-import itertools
 
 from get_data import init_column_map, pull_data_rowwise
 
+import itertools
+
 from auto_transformers import auto_build_transformers
-from build_model import build_v2g_model_multinomial
 
 ### More info on sklearn logistic regression here:
 # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
@@ -215,7 +215,7 @@ def build_v2g_model_multinomial(
     csvfile,
     input_variables,
     target_variable,
-    transformers,
+    transformers=TRANSFORMERS,
     do_normalize=True,
     test_split_ratio=0.0
 ):
