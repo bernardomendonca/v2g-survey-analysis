@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import normalize
+from sklearn.model_selection import train_test_split, cross_val_score
+
 from get_data import init_column_map, pull_data_rowwise
 
 ### More info on sklearn logistic regression here:
@@ -173,10 +175,9 @@ def build_v2g_model(csvfile, input_variables, target_variable):
     print("Coefficients:", model.coef_)
     print("Intercept(s):", model.intercept_)
 
-    return model
+    return model, X, y
 
-
-def build_v2g_model_multinomial(csvfile, input_variables, target_variable, normalize_cols=True):
+def build_v2g_model_multinomial(csvfile, input_variables, target_variable, do_normalize=True, test_split_ratio=0.0):
     """
     Builds a logistic regression model given:
       - csvfile: path to your CSV dataset
@@ -203,79 +204,90 @@ def build_v2g_model_multinomial(csvfile, input_variables, target_variable, norma
         # We can keep increasing this list as we want
     }
 
-    X = []
-    y = []
+    X_list = []
+    y_list = []
 
-    # Indices: first len(input_variables) columns are inputs, the last one is the target, analogous to 'data' up there
     n_inputs = len(input_variables)
 
-    for row in data:
-        row_x = []
-        good_row = True  # we'll set False if any value is missing or invalid
+    # 4) Parse each row
+    for row_vals in data:
+        features = []
+        good_row = True
 
-        # Convert input variables
+        # Convert predictor columns
         for i, var_name in enumerate(input_variables):
-            raw_val = row[i]
+            raw_val = row_vals[i]
             if var_name in transformers:
                 val = transformers[var_name](raw_val)
             else:
-                # Default attempt: parse as float or int
+                # default parse float
                 try:
                     val = float(raw_val)
                 except:
-                    val = -1 
+                    val = -1
             if val < 0:
-                good_row = False  # indicates invalid or missing
-            row_x.append(val)
+                good_row = False
+            features.append(val)
 
-        # Convert target variable
-        raw_target = row[n_inputs]
+        # Convert target
+        raw_targ = row_vals[n_inputs]
         if target_variable in transformers:
-            t_val = transformers[target_variable](raw_target)
+            t_val = transformers[target_variable](raw_targ)
         else:
-            # Default parse as numeric
+            # default parse float
             try:
-                t_val = float(raw_target)
+                t_val = float(raw_targ)
             except:
                 t_val = -1
 
         if t_val < 0:
             good_row = False
 
-        # If everything is valid, append. Check if good_row is True
+        # If valid, keep
         if good_row:
-            X.append(row_x)
-            y.append(t_val)
+            X_list.append(features)
+            y_list.append(t_val)
 
-    # Turn into numpy arrays
-    X = np.array(X, dtype=float)
-    y = np.array(y, dtype=int)
+    # Convert to arrays
+    X = np.array(X_list, dtype=float)
+    y = np.array(y_list, dtype=int)
 
     # (Optional) Normalize or standardize the predictor matrix
     ## See here:
     # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.normalize.html
     # TBD - Add this as a parameter to the function
-    if normalize_cols:
+    if do_normalize:
         X = normalize(X, axis=0, norm='max')
+
+    # If you want a train/test split
+    X_test, y_test = None, None
+    if test_split_ratio > 0:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, 
+            test_size=test_split_ratio, random_state=42)
+    else:
+        X_train, y_train = X, y
 
     # Fit logistic regression with L1 penalty
     ## We can also consider L2 (Ridge regression)
     ## Here's a great article on it: https://medium.com/analytics-vidhya/regularization-understanding-l1-and-l2-regularization-for-deep-learning-a7b9e4a409bf
     model = LogisticRegression(
-        penalty='l1', 
-        # Note that liblinear works well for now, but SAGA might be able to handle  multinomial + L1 better.    
-        solver='saga',
+        penalty='l1',
+        # Note that liblinear works well for one-vs-rest (OVR), but SAGA might be able to handle  multinomial + L1 better.    
+        solver='saga',          
         multi_class='multinomial',
-        max_iter=1000,
-        C=1.0
-        )
-    model.fit(X, y)
+        max_iter=1000
+    )
 
-    # Evaluate
-    accuracy = model.score(X, y)
-    print("Accuracy on training data: ", accuracy)
-    print("Coefficients shape:", model.coef_.shape)
-    print("Coefficients:", model.coef_)
-    print("Intercept(s):", model.intercept_)
+    # Fit
+    model.fit(X_train, y_train)
 
-    return model
+    # print accuracy on training set
+    train_acc = model.score(X_train, y_train)
+    print("Training accuracy:", train_acc)
+
+    # If we have a test set, evaluate there too
+    if X_test is not None:
+        test_acc = model.score(X_test, y_test)
+        print("Test accuracy:", test_acc)
+
+    return model, X, y, X_test, y_test
