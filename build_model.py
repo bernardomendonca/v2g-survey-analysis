@@ -76,6 +76,16 @@ def text_to_code_q10_2(raw_ans):
     }
     return mapping.get(raw_ans, -1)
 
+def text_to_code_q1_2_multi(raw_ans):
+    """
+    Q8_1, Q8_2, Q8_99 are individual columns with '1' or '0' in the CSV.
+    We just convert '1' -> 1 (True) and '0' -> 0 (False).
+    """
+    if raw_ans == '1':
+        return 1
+    else:
+        return 0
+
 
 #################################
 ## UNIVERSAL FALLBACK FUNCTION ##
