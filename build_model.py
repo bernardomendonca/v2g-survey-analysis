@@ -85,6 +85,20 @@ def text_to_code_q1_2_multi(raw_ans):
         return 1
     else:
         return 0
+    
+#####################################
+## TEXT TO CODE - GENERIC FUNCTION ##
+#####################################
+
+# Here I'm slowly setting up the generic functions to handle text-to-code
+
+
+def text_to_code_binary(raw_ans):
+    """
+    Returns 1 if raw_ans == '1', otherwise 0.
+    Useful for any column that is purely 0 or 1 in the CSV.
+    """
+    return 1 if raw_ans == '1' else 0
 
 
 #################################
@@ -109,6 +123,15 @@ def fallback_text_to_float(raw_ans):
 TRANSFORMERS = {
     'Q9': text_to_code_q9,
     'Q2': text_to_code_q2,
+
+    # Q1 can use text_to_code_binary:
+    'Q1_1': text_to_code_binary,
+    'Q1_2': text_to_code_binary,
+    'Q1_3': text_to_code_binary,
+    'Q1_4': text_to_code_binary,
+    'Q1_99': text_to_code_binary,
+
+
     'Q8_1': text_to_code_q8_multi,
     'Q8_2': text_to_code_q8_multi,
     'Q8_99': text_to_code_q8_multi,
@@ -221,15 +244,6 @@ def build_v2g_model(csvfile, input_variables, target_variable):
     return model, X, y
 
 
-TRANSFORMERS = {
-    'Q9': text_to_code_q9,
-    'Q2': text_to_code_q2,
-    'Q8_1': text_to_code_q8_multi,
-    'Q8_2': text_to_code_q8_multi,
-    'Q8_99': text_to_code_q8_multi,
-    'Q10_2': text_to_code_q10_2
-    # add more known columns if needed
-}
 
 def build_v2g_model_multinomial(csvfile, input_variables, target_variable,
                                 do_normalize=True, test_split_ratio=0.0):
