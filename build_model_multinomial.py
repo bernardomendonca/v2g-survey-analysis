@@ -86,6 +86,20 @@ def text_to_code_q1_2_multi(raw_ans):
     else:
         return 0
     
+def text_to_code_q6(raw_ans):
+    """
+    Converts Q6 responses (charging behavior) to numeric values.
+    - "0 - Weekdays" or "" → 0
+    - Valid responses (1-5) → Keep as is
+    """
+    if raw_ans in ["0 - Weekdays", ""]:
+        return 0
+    try:
+        return int(raw_ans)
+    except:
+        return -1  # Invalid entry (unlikely but safe)
+
+    
 #####################################
 ## TEXT TO CODE - GENERIC FUNCTION ##
 #####################################
@@ -500,3 +514,76 @@ def evaluate_subset_with_transformers(csvfile, subset_vars, target):
     from sklearn.model_selection import cross_val_score
     scores = cross_val_score(model, X, y, cv=3, scoring="accuracy")
     return scores.mean()
+
+
+
+
+def build_v2g_model_multinomial_from_df(df, input_variables, target_variable, transformers, do_normalize=True, test_split_ratio=0.2):
+    """
+    Builds a multinomial logistic regression model from a DataFrame.
+    Instead of reading from CSV, this function takes a pre-processed DataFrame.
+    """
+    X_list = []
+    y_list = []
+
+    n_inputs = len(input_variables)
+
+    for _, row in df.iterrows():
+        row_x = []
+        good_row = True
+
+        # Convert input variables
+        for var_name in input_variables:
+            if var_name in df.columns:
+                raw_val = row[var_name]
+                # Check if there's a specific transformer for this variable
+                val = transformers.get(var_name, fallback_text_to_float)(raw_val)
+            else:
+                val = -1  # Treat missing values as invalid
+            
+            if val < 0:
+                good_row = False
+            row_x.append(val)
+
+        # Convert target variable
+        raw_target = row[target_variable] if target_variable in df.columns else -1
+        t_val = transformers.get(target_variable, fallback_text_to_float)(raw_target)
+
+        if t_val < 0:
+            good_row = False
+
+        if good_row:
+            X_list.append(row_x)
+            y_list.append(t_val)
+
+    X = np.array(X_list, dtype=float)
+    y = np.array(y_list, dtype=int)
+
+    if X.shape[0] == 0:
+        raise ValueError("No valid rows found after transformation.")
+
+    # Normalize if required
+    if do_normalize:
+        X = normalize(X, axis=0, norm='max')
+
+    # Split if needed
+    X_test, y_test = None, None
+    if test_split_ratio > 0.0:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split_ratio, random_state=42)
+    else:
+        X_train, y_train = X, y
+
+    # Train model
+    model = LogisticRegression(
+        penalty='l1',
+        solver='saga',  # supports L1 + multi-class
+        multi_class='multinomial',
+        max_iter=1000
+    )
+    model.fit(X_train, y_train)
+
+    print("Train Accuracy:", model.score(X_train, y_train))
+    if X_test is not None:
+        print("Test Accuracy:", model.score(X_test, y_test))
+
+    return model, X, y, X_test, y_test
