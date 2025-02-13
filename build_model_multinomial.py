@@ -13,7 +13,6 @@ from auto_transformers import auto_build_transformers
 # https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
 
 
-
 ##################
 ## TEXT TO CODE ##
 ##################
@@ -22,20 +21,15 @@ from auto_transformers import auto_build_transformers
 # Later on, we can generalise these based on the types of questions.
 # TBD - Move this to other file
 
-def text_to_code_q9(raw_ans):
+def text_to_code_q1_2_multi(raw_ans):
     """
-    Example mapping for Q9, which has 3 options:
-      - 'Very familiar'
-      - 'Somewhat familiar'
-      - 'Not at all familiar'
-    We convert them to 3,2,1 respectively. 
+    Q8_1, Q8_2, Q8_99 are individual columns with '1' or '0' in the CSV.
+    We just convert '1' -> 1 (True) and '0' -> 0 (False).
     """
-    mapping = {
-        'Very familiar': 3,
-        'Somewhat familiar': 2,
-        'Not at all familiar': 1
-    }
-    return mapping.get(raw_ans, -1)  # -1 means "invalid/unrecognised"
+    if raw_ans == '1':
+        return 1
+    else:
+        return 0
 
 def text_to_code_q2(raw_ans):
     """
@@ -55,6 +49,29 @@ def text_to_code_q2(raw_ans):
         'Unsure': 0  # or maybe -1 if we want to exclude, so it becomes invalide/unrecognised
     }
     return mapping.get(raw_ans, -1)
+
+def text_to_code_q3_parking(raw_ans):
+    """
+    Converts Q3 parking questions (Q3_1, Q3_2, ..., Q3_5) to numeric values.
+    - "1" → 1 (Yes, has this parking type)
+    - "0" → 0 (No, does not have this parking type)
+    """
+    return 1 if raw_ans == '1' else 0  # Ensure binary conversion
+
+def text_to_code_q9(raw_ans):
+    """
+    Example mapping for Q9, which has 3 options:
+      - 'Very familiar'
+      - 'Somewhat familiar'
+      - 'Not at all familiar'
+    We convert them to 3,2,1 respectively. 
+    """
+    mapping = {
+        'Very familiar': 3,
+        'Somewhat familiar': 2,
+        'Not at all familiar': 1
+    }
+    return mapping.get(raw_ans, -1)  # -1 means "invalid/unrecognised"
 
 def text_to_code_q8_multi(raw_ans):
     """
@@ -99,20 +116,50 @@ def text_to_code_q6(raw_ans):
     except:
         return -1  # Invalid entry (unlikely but safe)
 
-    
+
+def text_to_code_q10_2_binary(raw_ans):
+    """
+    Converts Q10_2 from 5-category responses to binary:
+    - "Strongly disagree", "Somewhat disagree", "Neither agree nor disagree" → 0 (Not adopting)
+    - "Somewhat agree", "Strongly agree" → 1 (Adopting)
+    """
+    adopting = {"Somewhat agree", "Strongly agree"}
+    return 1 if raw_ans in adopting else 0
+
+
+def text_to_code_q14_benefits_v2g(raw_ans):
+    """
+    - "1" → 1 (Yes)
+    - "0" → 0 (No)
+    """
+    return 1 if raw_ans == '1' else 0  # Ensure binary conversion
+
+def text_to_code_q15_concerns_v2g(raw_ans):
+    """
+    - "1" → 1 (Yes)
+    - "0" → 0 (No)
+    """
+    return 1 if raw_ans == '1' else 0  # Ensure binary conversion
+
 #####################################
 ## TEXT TO CODE - GENERIC FUNCTION ##
 #####################################
 
 # Here I'm slowly setting up the generic functions to handle text-to-code
 
-
 def text_to_code_binary(raw_ans):
+    
     """
-    Returns 1 if raw_ans == '1', otherwise 0.
-    Useful for any column that is purely 0 or 1 in the CSV.
+    Converts a binary response to 0 or 1.
+    - If the value is 1 (integer), "1" (string), or True (boolean), return 1.
+    - Otherwise, return 0.
     """
-    return 1 if raw_ans == '1' else 0
+    if str(raw_ans).strip() in {"1", "True"}:  # Handles strings & booleans
+        return 1
+    elif str(raw_ans).strip() in {"0", "False"}:  # Handles strings & booleans
+        return 0
+    else:
+        return -1  # Invalid/unrecognized value
 
 
 #################################
@@ -130,26 +177,57 @@ def fallback_text_to_float(raw_ans):
         # Could also check if it's '' or 'NA' or something
         return -1
 
-
 ########################
 # Master Transformers Dict
 ########################
 TRANSFORMERS = {
-    'Q9': text_to_code_q9,
+    # Q1 can use text_to_code_binary:
+    'Q1_1': text_to_code_binary, #Petrol/Diesel car
+    'Q1_2': text_to_code_binary, # Electric Vehicle
+    'Q1_3': text_to_code_binary, # Plug-in Hybrid vehicle
+    'Q1_4': text_to_code_binary, # Hybrid vehicle
+    'Q1_99': text_to_code_binary, # I don't own a car
+
     'Q2': text_to_code_q2,
 
-    # Q1 can use text_to_code_binary:
-    'Q1_1': text_to_code_binary,
-    'Q1_2': text_to_code_binary,
-    'Q1_3': text_to_code_binary,
-    'Q1_4': text_to_code_binary,
-    'Q1_99': text_to_code_binary,
+    'Q3_1': text_to_code_q3_parking,  # Personal driveway
+    'Q3_2': text_to_code_q3_parking,  # Personal garage
+    'Q3_3': text_to_code_q3_parking,  # Carport
+    'Q3_4': text_to_code_q3_parking,  # Street parking
+    'Q3_5': text_to_code_q3_parking,   # Other parking
+
+    'Q8_1': text_to_code_q8_multi, # Solar Panels
+    'Q8_2': text_to_code_q8_multi, # Home Battery
+    'Q8_99': text_to_code_q8_multi, # Neither
+
+    'Q9': text_to_code_q9,
+
+    'Q10_2': text_to_code_q10_2,
+
+    'Q14_1': text_to_code_binary,
+    'Q14_2': text_to_code_binary,
+    'Q14_3': text_to_code_binary,
+    'Q14_4': text_to_code_binary,
+    'Q14_5': text_to_code_binary,
+    'Q14_6': text_to_code_binary,
+    'Q14_7': text_to_code_binary,
+    'Q14_8': text_to_code_binary,
+    'Q14_99': text_to_code_binary,
+
+    'Q15_1': text_to_code_binary,
+    'Q15_2': text_to_code_binary,
+    'Q15_3': text_to_code_binary,
+    'Q15_4': text_to_code_binary,
+    'Q15_5': text_to_code_binary,
+    'Q15_6': text_to_code_binary,
+    'Q15_7': text_to_code_binary,
+    'Q15_8': text_to_code_binary,
+    'Q15_9': text_to_code_binary,
+    'Q15_10': text_to_code_binary,
+    'Q15_99': text_to_code_binary,
 
 
-    'Q8_1': text_to_code_q8_multi,
-    'Q8_2': text_to_code_q8_multi,
-    'Q8_99': text_to_code_q8_multi,
-    'Q10_2': text_to_code_q10_2
+
 }
 
 
