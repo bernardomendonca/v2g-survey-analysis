@@ -50,28 +50,26 @@ def pull(question_id, csvfile, r_map=None):
 
     return counts
 
-def pull_data_rowwise(question_ids, csvfile):
+def pull_data_rowwise(question_list, csvfile):
     """
-    Returns a list of lists or list of dicts, each row containing 
-    the values for the specified question_ids. 
-    For example, question_ids might be ['gender','Q10_2','Q9','Q1_1'].
+    Returns a list of lists, each sub-list is the row's answers 
+    for columns in question_list (in order).
     """
     global column_map
-    rows = []
+    if not column_map:
+        raise ValueError("column_map is empty. Call init_column_map first.")
 
-    # Indices for each question_id
     indices = []
-    for q in question_ids:
+    for q in question_list:
         if q not in column_map:
-            raise ValueError(f"Question ID {q} not found in column_map.")
+            raise ValueError(f"Question {q} not in column_map: {q}")
         indices.append(column_map[q])
 
+    rows = []
     with open(csvfile, 'r', encoding='utf-8') as f:
         reader = csv.reader(f)
-        header = next(reader)
+        _ = next(reader)  # skip the header
         for line in reader:
-            # Extract the relevant columns for this row
-            selected = [line[i] for i in indices]
+            selected = [line[idx] for idx in indices]
             rows.append(selected)
-
     return rows
