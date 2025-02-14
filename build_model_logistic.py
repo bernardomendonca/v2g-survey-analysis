@@ -36,14 +36,23 @@ def build_v2g_model_binary_from_df(df, input_variables, target_variable, transfo
             else:
                 good_row = False
 
+
         # Convert the target variable (V2G Adoption: 0 or 1)
         if target_variable in df.columns:
             raw_target = row[target_variable]
-            t_val = transformers.get(target_variable, fallback_text_to_float)(raw_target)
-            if t_val < 0:
+            
+            # Check if the target is already binary (contains only 0 and 1)
+            if raw_target in {0, 1}:  
+                t_val = raw_target  # Use directly
+            else:
+                t_val = transformers.get(target_variable, fallback_text_to_float)(raw_target)  # Apply transformation
+            
+            # Ensure t_val is valid
+            if t_val not in {0, 1}:  
                 good_row = False
         else:
             good_row = False
+
 
         if good_row:
             X_list.append(row_x)
@@ -62,6 +71,10 @@ def build_v2g_model_binary_from_df(df, input_variables, target_variable, transfo
 
     # Split into train and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_split_ratio, random_state=42)
+
+    print("Unique values in y_train:", np.unique(y_train, return_counts=True))
+    print("Unique values in y_test:", np.unique(y_test, return_counts=True))
+
 
     # Fit a binary logistic regression model
     model = LogisticRegression(penalty='l1', solver='liblinear')

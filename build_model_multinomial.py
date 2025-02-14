@@ -58,6 +58,34 @@ def text_to_code_q3_parking(raw_ans):
     """
     return 1 if raw_ans == '1' else 0  # Ensure binary conversion
 
+def text_to_code_q7_likert(raw_ans):
+    """
+    Converts Q7 responses (Likert scale) to numerical values:
+    - 'Strongly disagree' → 1
+    - 'Somewhat disagree' → 2
+    - 'Neither agree nor disagree' → 3
+    - 'Somewhat agree' → 4
+    - 'Strongly agree' → 5
+    """
+    mapping = {
+        'Strongly disagree': 1,
+        'Somewhat disagree': 2,
+        'Neither agree nor disagree': 3,
+        'Somewhat agree': 4,
+        'Strongly agree': 5
+    }
+    return mapping.get(raw_ans, -1)  # Default to -1 for invalid values
+
+def text_to_code_q8_multi(raw_ans):
+    """
+    Q8_1, Q8_2, Q8_99 are individual columns with '1' or '0' in the CSV.
+    We just convert '1' -> 1 (True) and '0' -> 0 (False).
+    """
+    if raw_ans == '1':
+        return 1
+    else:
+        return 0
+
 def text_to_code_q9(raw_ans):
     """
     Example mapping for Q9, which has 3 options:
@@ -72,16 +100,6 @@ def text_to_code_q9(raw_ans):
         'Not at all familiar': 1
     }
     return mapping.get(raw_ans, -1)  # -1 means "invalid/unrecognised"
-
-def text_to_code_q8_multi(raw_ans):
-    """
-    Q8_1, Q8_2, Q8_99 are individual columns with '1' or '0' in the CSV.
-    We just convert '1' -> 1 (True) and '0' -> 0 (False).
-    """
-    if raw_ans == '1':
-        return 1
-    else:
-        return 0
 
 def text_to_code_q10_2(raw_ans):
     mapping = {
@@ -195,6 +213,11 @@ TRANSFORMERS = {
     'Q3_3': text_to_code_q3_parking,  # Carport
     'Q3_4': text_to_code_q3_parking,  # Street parking
     'Q3_5': text_to_code_q3_parking,   # Other parking
+
+    'Q7_1': text_to_code_q7_likert, # Benefits V2G
+    'Q7_2': text_to_code_q7_likert, # Benefits V2G
+    'Q7_3': text_to_code_q7_likert, # Benefits V2G
+
 
     'Q8_1': text_to_code_q8_multi, # Solar Panels
     'Q8_2': text_to_code_q8_multi, # Home Battery

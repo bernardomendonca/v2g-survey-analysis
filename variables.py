@@ -195,6 +195,10 @@ feature_label_map = {
     "Q6ax4_2":"Hybrid at home (4pm-9pm)", 
     "Q6ax4_3":"Hybrid at home (9pm-6am)",
 
+    "Q7_1":"I check my energy bill regularly",
+    "Q7_2":"I try to minimise my energy usage to reduce my bill",
+    "Q7_3":"I regularly compare my current plan against alternatives in the market",
+
     "Q14_1": "Earning money from my car battery by selling electricity to the grid",
     "Q14_2": "Saving on my energy bill by using my car battery to power my home",
     "Q14_3": "Helping the environment",
