@@ -144,6 +144,22 @@ def text_to_code_q10_2_binary(raw_ans):
     adopting = {"Somewhat agree", "Strongly agree"}
     return 1 if raw_ans in adopting else 0
 
+# The following function is effectivelly the same as the previous, but REMOVES tthe "neither" response:
+
+def text_to_code_q10_2_binary_exclude_neither(raw_ans):
+    # If we see integers, just return them
+    if raw_ans in {0, 1}:
+        return raw_ans
+    # Otherwise, do the text-based logic
+    adopting = {"Somewhat agree", "Strongly agree"}
+    not_adopting = {"Somewhat disagree", "Strongly disagree"}
+    if raw_ans in adopting:
+        return 1
+    elif raw_ans in not_adopting:
+        return 0
+    else:
+        return None
+
 
 def text_to_code_q14_benefits_v2g(raw_ans):
     """
