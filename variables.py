@@ -219,5 +219,10 @@ feature_label_map = {
     "Q15_8": "Whether it is actually possible at my home",
     "Q15_9": "Would require my car to be plugged in for the majority of the time",
     "Q15_10": "I don’t want to lose control of how I charge my EV",
-    "Q15_99": "Q15 - None of these"
+    "Q15_99": "Q15 - None of these",
+
+    "Q17_1": "I manually select when I want to charge my car and when I want to discharge my car to sell energy back to the grid",
+    "Q17_2": "I use software to automatically decide whether to charge the car or to sell energy back to the grid, based on earning the most money (within agreed limits that do not impact my driving requirements)",
+    "Q17_3": "I have an agreement with a company that they can discharge half my car battery once a week and they provide me with a regular payment"
+
 }

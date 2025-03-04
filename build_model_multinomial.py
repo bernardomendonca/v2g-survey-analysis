@@ -84,7 +84,7 @@ def text_to_code_q8_multi(raw_ans):
     if raw_ans == '1':
         return 1
     else:
-        return 0
+        return
 
 def text_to_code_q9(raw_ans):
     """
@@ -174,6 +174,32 @@ def text_to_code_q15_concerns_v2g(raw_ans):
     - "0" → 0 (No)
     """
     return 1 if raw_ans == '1' else 0  # Ensure binary conversion
+
+def text_to_code_q17_rank(raw_ans):
+    """
+    Parses a ranking value from Q17 (which should be '1', '2', or '3').
+    Returns:
+      1, 2, or 3 on success
+      -1 if invalid or missing
+    """
+    if raw_ans is None:
+        return -1
+    x = raw_ans.strip()
+    if x in ["1", "2", "3"]:
+        return int(x)
+    else:
+        return -1
+    
+def text_to_code_q17_rank_for_first(raw_ans):
+    if raw_ans is None:
+        return -1
+    x = raw_ans.strip()
+    if x == "2":
+        return 1
+    elif x in ['1', '3']:
+        return 0
+    else:
+        return -1
 
 #####################################
 ## TEXT TO CODE - GENERIC FUNCTION ##
@@ -265,7 +291,9 @@ TRANSFORMERS = {
     'Q15_10': text_to_code_binary,
     'Q15_99': text_to_code_binary,
 
-
+    'Q17_1': text_to_code_q17_rank, # Control of charging
+    'Q17_2': text_to_code_q17_rank,
+    'Q17_3': text_to_code_q17_rank
 
 }
 

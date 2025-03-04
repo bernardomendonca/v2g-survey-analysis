@@ -15,7 +15,7 @@ def plot_coefficient_heatmap(model, feature_names, class_labels=None):
     n_classes, n_features = coefs.shape
     
     if class_labels is None:
-        class_labels = list(range(n_classes))  # e.g. 0..4 or 1..5
+        class_labels = list(range(n_classes))
 
     # Transpose so each row is a feature, each column is a class
     coefs_T = coefs.T  # shape = (n_features, n_classes)
