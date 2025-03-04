@@ -184,19 +184,24 @@ def text_to_code_q17_rank(raw_ans):
     """
     if raw_ans is None:
         return -1
+    
     x = raw_ans.strip()
+    if x == '':
+        return -1
+    
     if x in ["1", "2", "3"]:
         return int(x)
     else:
         return -1
     
 def text_to_code_q17_rank_for_first(raw_ans):
+    
     if raw_ans is None:
         return -1
     x = raw_ans.strip()
-    if x == "2":
+    if x == "1":
         return 1
-    elif x in ['1', '3']:
+    elif x in ['2', '3']:
         return 0
     else:
         return -1
@@ -260,7 +265,6 @@ TRANSFORMERS = {
     'Q7_2': text_to_code_q7_likert, # Benefits V2G
     'Q7_3': text_to_code_q7_likert, # Benefits V2G
 
-
     'Q8_1': text_to_code_q8_multi, # Solar Panels
     'Q8_2': text_to_code_q8_multi, # Home Battery
     'Q8_99': text_to_code_q8_multi, # Neither
@@ -291,9 +295,9 @@ TRANSFORMERS = {
     'Q15_10': text_to_code_binary,
     'Q15_99': text_to_code_binary,
 
-    'Q17_1': text_to_code_q17_rank, # Control of charging
-    'Q17_2': text_to_code_q17_rank,
-    'Q17_3': text_to_code_q17_rank
+    'Q17_1': text_to_code_q17_rank_for_first, # Control of charging
+    'Q17_2': text_to_code_q17_rank_for_first,
+    'Q17_3': text_to_code_q17_rank_for_first
 
 }
 
