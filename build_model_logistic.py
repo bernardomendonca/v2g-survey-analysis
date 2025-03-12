@@ -152,9 +152,10 @@ def run_single_feature_regressions(
         else:
             filtered_df = df  # default: no special filter
 
-        # 3) Skip if too few total rows
-        if filtered_df.shape[0] < 10:
-            print(f"Skipping {feature} (too few valid rows: {filtered_df.shape[0]})")
+        # 3) Skip if feature is all NaN or zeros in the filtered dataset
+        unique_values = filtered_df[feature].dropna().unique()
+        if len(unique_values) == 0 or (len(unique_values) == 1 and unique_values[0] == 0):
+            print(f"Skipping {feature} (constant value or only NaNs after filtering)")
             continue
 
         # 4) Transform or convert numeric
@@ -166,35 +167,40 @@ def run_single_feature_regressions(
             X_single = pd.to_numeric(filtered_df[feature], errors="coerce")
             valid_rows = ~X_single.isna()
 
+        # 5) Skip if too few valid rows
+        if valid_rows.sum() < 10:
+            print(f"Skipping {feature} (too few valid rows: {valid_rows.sum()})")
+            continue
+
         print(f"Total rows before filter: {filtered_df.shape[0]}")
         print(f"Valid rows after filtering: {valid_rows.sum()}")
 
         X_single = X_single[valid_rows].values.reshape(-1, 1)
         y = filtered_df.loc[valid_rows, target_variable].values
 
-        # 5) If only one unique value, skip
-        if len(np.unique(X_single)) == 1:
-            val = np.unique(X_single)[0]
-            print(f"Skipping {feature} (constant value: {val})")
+        # 6) If only one unique value remains, skip
+        unique_values = np.unique(X_single)
+        if len(unique_values) == 1:
+            print(f"Skipping {feature} (constant value: {unique_values[0]})")
             continue
 
-        # 6) Fit logistic regression
+        # 7) Fit logistic regression
         model = LogisticRegression(penalty='l1', solver='liblinear')
         model.fit(X_single, y)
 
-        # Evaluate
+        # 8) Evaluate
         y_pred = model.predict(X_single)
         accuracy = accuracy_score(y, y_pred)
 
         coef = model.coef_[0][0]
         odds_ratio = np.exp(coef)
 
-        # 7) Statsmodels for p-value
+        # 9) Statsmodels for p-value
         X_with_intercept = sm.add_constant(X_single)
         sm_model = sm.Logit(y, X_with_intercept).fit(disp=0)
         p_value = sm_model.pvalues[1]
 
-        # store result
+        # 10) tore result
         results.append({
             "Feature": feature_label_map.get(feature, feature),
             "Accuracy": accuracy,
@@ -203,7 +209,7 @@ def run_single_feature_regressions(
             "P-value": p_value
         })
 
-    # 8) Build results DataFrame
+    # 11) Build results DataFrame
     results_df = pd.DataFrame(results)
     if not results_df.empty:
         results_df["abs_coef"] = results_df["Coefficient"].abs()
