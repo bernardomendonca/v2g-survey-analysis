@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import numpy as np
+import textwrap
 
 
 #######################
@@ -112,7 +112,7 @@ def plot_grouped_bar(df, x_column, title, xlabel, ylabel, figsize=(8, 5)):
     plt.show()
 
 ### Plot Stacked Bar Chart
-def plot_stacked_bar(df, category_col, segment_col, title, xlabel, ylabel, figsize=(10, 6)):
+def plot_stacked_bar(df, category_col, segment_col, title, xlabel, ylabel, figsize=(10, 6), colormap="viridis"):
     """
     Plots a stacked bar chart showing the proportion of a category across segments.
 
@@ -131,7 +131,7 @@ def plot_stacked_bar(df, category_col, segment_col, title, xlabel, ylabel, figsi
     category_dist = df.groupby([segment_col, category_col]).size().unstack()
     category_dist = category_dist.div(category_dist.sum(axis=1), axis=0)  # Convert to proportions
 
-    category_dist.plot(kind="bar", stacked=True, colormap="viridis", figsize=figsize)
+    category_dist.plot(kind="bar", stacked=True, colormap=colormap, figsize=figsize)
     plt.title(title, fontsize=14, fontweight="bold")
     plt.xlabel(xlabel, fontsize=12)
     plt.ylabel(ylabel, fontsize=12)
@@ -232,7 +232,7 @@ def plot_stacked_percentage_bar(df, category_col, segment_col, title, xlabel, yl
     plt.show()
 
 
-def plot_multi_column_counts(df, columns, segment_col, title, xlabel, ylabel, figsize=(10, 6), stacked=True):
+def plot_multi_column_counts(df, columns, segment_col, feature_label_map, title, xlabel, ylabel, figsize=(10, 6), stacked=True):
     """
     Plots a grouped or stacked bar chart for multiple columns (e.g., parking types) across segments.
 
@@ -250,8 +250,7 @@ def plot_multi_column_counts(df, columns, segment_col, title, xlabel, ylabel, fi
     counts = df.groupby(segment_col)[columns].sum()
     
     # Rename columns using feature_label_map for readability (if applicable)
-    if "feature_label_map" in globals():
-        counts = counts.rename(columns=feature_label_map)
+    counts = counts.rename(columns=feature_label_map)
 
     # Plot the data
     counts.plot(kind="bar", stacked=stacked, colormap="viridis", figsize=figsize)
@@ -264,6 +263,59 @@ def plot_multi_column_counts(df, columns, segment_col, title, xlabel, ylabel, fi
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
     plt.show()
+
+def plot_multi_column_counts_percentage(df, columns, segment_col, feature_label_map, title, xlabel, ylabel, figsize=(10, 6), stacked=True, show_percent=True):
+    """
+    Plots a grouped or stacked bar chart for multiple columns (e.g., parking types) across segments.
+    Adds percentage labels on top of bars within each segment.
+
+    Args:
+        df (pd.DataFrame): Segmented DataFrame with 'Segment' column.
+        columns (list): List of column names to count.
+        segment_col (str): Column that defines segments.
+        feature_label_map (dict): Dictionary mapping column names to readable labels.
+        title (str): Plot title.
+        xlabel (str): X-axis label.
+        ylabel (str): Y-axis label.
+        figsize (tuple): Figure size.
+        stacked (bool): If True, plot a stacked bar chart; otherwise, use grouped bars.
+        show_percent (bool): If True, adds percentage values on top of bars.
+    """
+    # Sum the counts for each column, grouped by segment
+    counts = df.groupby(segment_col)[columns].sum()
+
+    # Rename columns using feature_label_map for readability (if applicable)
+    counts = counts.rename(columns=feature_label_map)
+
+    # Compute percentages **within each segment** (row-wise normalization)
+    percentages = counts.div(counts.sum(axis=1), axis=0) * 100  # Row-wise division
+
+    # Create plot
+    ax = counts.plot(kind="bar", stacked=stacked, colormap="viridis", figsize=figsize)
+
+    plt.title(title, fontsize=14, fontweight="bold")
+    plt.xlabel(xlabel, fontsize=12)
+    plt.ylabel(ylabel, fontsize=12)
+    plt.legend(title="Parking Type", loc="upper right")
+    plt.xticks(rotation=30)
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Add percentage text on bars
+    if show_percent:
+        for i, segment in enumerate(counts.index):  # Iterate over segments
+            total_segment = counts.loc[segment].sum()  # Get total count for segment
+            for j, category in enumerate(counts.columns):  # Iterate over categories
+                value = counts.loc[segment, category]
+                percent = percentages.loc[segment, category]  # Get percentage
+                if value > 0:  # Only label bars with values
+                    bar = ax.patches[i * len(counts.columns) + j]  # Locate the correct bar
+                    x = bar.get_x() + bar.get_width() / 2
+                    y = bar.get_y() + bar.get_height() / 2 if stacked else bar.get_height()
+
+                    ax.text(x, y, f"{value:.0f} ({percent:.1f}%)", ha='center', va='center', fontsize=10, color="black")
+
+    plt.show()
+
 
 
 def plot_vehicle_presence_heatmaps(df, vehicle_type_columns, time_periods, segment_col, title_prefix=""):
@@ -455,9 +507,9 @@ def plot_likert_heatmap(df, likert_columns, segment_col, category_order, feature
     plt.show()
 
 
-def plot_grouped_bar_chart(df, columns, segment_col, feature_label_map, title, ylabel):
+def plot_grouped_bar_chart(df, columns, segment_col, feature_label_map, title, ylabel, figsize=(12, 8), colormap="coolwarm", wrap_length=25):
     """
-    Plots a grouped bar chart for binary Yes/No responses across multiple segments.
+    Plots a grouped bar chart for binary Yes/No responses across multiple segments with wrapped x-axis labels.
 
     Args:
         df (pd.DataFrame): Combined DataFrame with a segment identifier column.
@@ -466,6 +518,7 @@ def plot_grouped_bar_chart(df, columns, segment_col, feature_label_map, title, y
         feature_label_map (dict): Dictionary mapping column names to descriptive labels.
         title (str): Title of the plot.
         ylabel (str): Y-axis label.
+        wrap_length (int): Maximum number of characters before wrapping x-axis labels.
     """
 
     # Convert only the binary columns to numeric 0/1
@@ -481,17 +534,24 @@ def plot_grouped_bar_chart(df, columns, segment_col, feature_label_map, title, y
     prop_yes.index.name = "Segment"
     prop_yes = prop_yes.rename(columns=feature_label_map)
 
-    # Plot as grouped bars (side by side)
-    ax = prop_yes.T.plot(kind="bar", figsize=(12, 12), width=0.8, colormap="coolwarm", edgecolor="black")
+    # **Wrap x-axis labels** using textwrap
+    wrapped_labels = [textwrap.fill(label, wrap_length) for label in prop_yes.columns]
 
-    ax.legend(title="Segment", loc="bottom", bbox_to_anchor=(0.5, 1.10), ncol=len(prop_yes))
+    # Plot as grouped bars (side by side)
+    ax = prop_yes.T.plot(kind="bar", figsize=figsize, width=0.8, colormap=colormap, edgecolor="black")
+
+    # **Legend inside the plot, top right**
+    ax.legend(title="Segment", loc="upper right", bbox_to_anchor=(1, 1), frameon=True)
+
     plt.xlabel("Benefits of V2G")
-    plt.ylabel("Percentage of respondents")
+    plt.ylabel(ylabel)
     plt.title(title)
-    plt.xticks(rotation=90, ha="right")
+
+    # **Set wrapped labels**
+    ax.set_xticklabels(wrapped_labels, rotation=90, ha="right")
+
     plt.tight_layout()
     plt.show()
-
 
 
 def plot_co_occurrence_heatmap(df, columns, segment_col, feature_label_map, title_prefix=""):
