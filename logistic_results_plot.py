@@ -32,31 +32,6 @@ def plot_feature_significance(results_df, significance_threshold=0.05):
     plt.legend()
     plt.show()
 
-def plot_coefficients_barh_by_abscoef(results_df):
-    """
-    Sorts the features by absolute coefficient in ascending order
-    and plots a horizontal bar chart of raw coefficients.
-    Positive coefficients in green, negative in red.
-    """
-    # Sort
-    results_df_sorted = results_df.sort_values(by="abs_coef", ascending=True)
-    
-    plt.figure(figsize=(10, 16))
-    
-    # Color: green if positive, red if negative
-    colors = ["green" if x > 0 else "red" for x in results_df_sorted["Coefficient"]]
-    
-    plt.barh(
-        results_df_sorted["Feature"], 
-        results_df_sorted["Coefficient"], 
-        color=colors
-    )
-    plt.axvline(0, color="black", linewidth=1)  # vertical line at 0
-    plt.xlabel("Coefficient")
-    plt.ylabel("Feature")
-    plt.title("Feature Influence on V2G Adoption (Logistic Regression)")
-    plt.show()
-
 def plot_odds_ratio_barh(results_df):
     """
     Sorts the features by odds ratio (descending) and plots 
@@ -122,7 +97,7 @@ def plot_log_p_value_barh(results_df):
     plt.show()
 
 
-def plot_coefficients_significance_barh(results_df):
+def plot_coefficients_significance_barh(results_df, figsize=(12, 18)):
     """
     Sort by abs_coef ascending. 
     Features with p>=0.05 => gray, positive => green, negative => red.
@@ -138,21 +113,22 @@ def plot_coefficients_significance_barh(results_df):
         for p, coef in zip(results_df_sorted["P-value"], results_df_sorted["Coefficient"])
     ]
 
-    plt.figure(figsize=(12, 18))
+    plt.figure(figsize=figsize)
     bars = plt.barh(results_df_sorted["Feature"], results_df_sorted["Coefficient"], color=colors)
 
     # Label p-values to the right of each bar
     for bar, p_value in zip(bars, results_df_sorted["P-value"]):
-        # Position text at the right edge + a small offset
         plt.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height()/2, 
                  f"p={p_value:.3g}", va='center', fontsize=10)
 
     plt.axvline(0, color="black", linewidth=1, linestyle="--")
+    plt.grid(axis="x", linestyle="--", alpha=0.7)  # Add grid lines to the x-axis
     plt.xlabel("Coefficient")
     plt.ylabel("Feature")
     plt.title("Feature Influence on V2G Adoption (Logistic Regression)\n(Non-significant features greyed out)")
     plt.tight_layout()
     plt.show()
+
 
 def plot_coefficient_vs_significance(results_df, p_threshold=0.05):
     """
