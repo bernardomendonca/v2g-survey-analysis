@@ -1,0 +1,11 @@
+# Original datasource
+data/
+
+# Unused notebooks
+2B_contextual_data_segmented.ipynb
+2C_contextual_data_comparing_segments.ipynb
+3C_logistic_regression_ev_owners.ipynb
+
+# Unused scripts
+transforms.py
+utils.py
