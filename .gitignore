@@ -1,10 +1,17 @@
 # Original datasource
-data/
+data/*
+Obsolete/
+results/*
 
 # Unused notebooks
 2B_contextual_data_segmented.ipynb
 2C_contextual_data_comparing_segments.ipynb
+3B_logistic_regression_controlling_for.ipynb
 3C_logistic_regression_ev_owners.ipynb
+4_logistic_regression_segmented.ipynb
+5_logistic_regression_comparing_segments.ipynb
+6_multinomial_logistic_regression.ipynb
+7_subset_optimisation.ipynb
 
 # Unused scripts
 transforms.py
